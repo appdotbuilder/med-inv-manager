@@ -1,54 +1,112 @@
+import { db } from '../db';
+import { medicalEquipmentTable } from '../db/schema';
 import { type CreateEquipmentInput, type UpdateEquipmentInput, type DeleteEquipmentInput, type MedicalEquipment } from '../schema';
+import { eq } from 'drizzle-orm';
 
 export async function createEquipment(input: CreateEquipmentInput): Promise<MedicalEquipment> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to create a new medical equipment record
-    // Should validate input data and persist to database
-    return Promise.resolve({
-        id: 1,
+  try {
+    const result = await db.insert(medicalEquipmentTable)
+      .values({
         name: input.name,
         description: input.description,
         image_url: input.image_url,
         entry_date: input.entry_date,
         stock_quantity: input.stock_quantity,
-        condition: input.condition,
-        created_at: new Date(),
-        updated_at: new Date()
-    });
+        condition: input.condition
+      })
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Equipment creation failed:', error);
+    throw error;
+  }
 }
 
 export async function updateEquipment(input: UpdateEquipmentInput): Promise<MedicalEquipment> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to update existing medical equipment record
-    // Should handle image replacement (delete old image if new one uploaded)
-    return Promise.resolve({
-        id: input.id,
-        name: input.name || 'existing_name',
-        description: input.description || 'existing_description',
-        image_url: input.image_url !== undefined ? input.image_url : 'existing_image_url',
-        entry_date: input.entry_date || new Date(),
-        stock_quantity: input.stock_quantity || 0,
-        condition: input.condition || 'good',
-        created_at: new Date(),
-        updated_at: new Date()
-    });
+  try {
+    // First check if equipment exists
+    const existing = await db.select()
+      .from(medicalEquipmentTable)
+      .where(eq(medicalEquipmentTable.id, input.id))
+      .execute();
+
+    if (existing.length === 0) {
+      throw new Error(`Equipment with id ${input.id} not found`);
+    }
+
+    // Build update object with only provided fields
+    const updateData: any = {
+      updated_at: new Date()
+    };
+
+    if (input.name !== undefined) updateData.name = input.name;
+    if (input.description !== undefined) updateData.description = input.description;
+    if (input.image_url !== undefined) updateData.image_url = input.image_url;
+    if (input.entry_date !== undefined) updateData.entry_date = input.entry_date;
+    if (input.stock_quantity !== undefined) updateData.stock_quantity = input.stock_quantity;
+    if (input.condition !== undefined) updateData.condition = input.condition;
+
+    const result = await db.update(medicalEquipmentTable)
+      .set(updateData)
+      .where(eq(medicalEquipmentTable.id, input.id))
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Equipment update failed:', error);
+    throw error;
+  }
 }
 
 export async function deleteEquipment(input: DeleteEquipmentInput): Promise<{ success: boolean }> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to delete medical equipment record
-    // Should also delete associated image file from server
-    return Promise.resolve({ success: true });
+  try {
+    // First check if equipment exists
+    const existing = await db.select()
+      .from(medicalEquipmentTable)
+      .where(eq(medicalEquipmentTable.id, input.id))
+      .execute();
+
+    if (existing.length === 0) {
+      throw new Error(`Equipment with id ${input.id} not found`);
+    }
+
+    await db.delete(medicalEquipmentTable)
+      .where(eq(medicalEquipmentTable.id, input.id))
+      .execute();
+
+    return { success: true };
+  } catch (error) {
+    console.error('Equipment deletion failed:', error);
+    throw error;
+  }
 }
 
 export async function getAllEquipment(): Promise<MedicalEquipment[]> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to fetch all medical equipment records
-    return Promise.resolve([]);
+  try {
+    const results = await db.select()
+      .from(medicalEquipmentTable)
+      .execute();
+
+    return results;
+  } catch (error) {
+    console.error('Failed to fetch all equipment:', error);
+    throw error;
+  }
 }
 
 export async function getEquipmentById(id: number): Promise<MedicalEquipment | null> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to fetch a specific equipment record by ID
-    return Promise.resolve(null);
+  try {
+    const results = await db.select()
+      .from(medicalEquipmentTable)
+      .where(eq(medicalEquipmentTable.id, id))
+      .execute();
+
+    return results.length > 0 ? results[0] : null;
+  } catch (error) {
+    console.error('Failed to fetch equipment by id:', error);
+    throw error;
+  }
 }
